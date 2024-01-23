@@ -77,7 +77,8 @@ def rezerwuj_ksiazke(request):
                 ksiazka.save()
                 # przekieruj do strony potwierdzenia lub wyświetl komunikat o sukcesie
                 return redirect('jakas_strona')
-    return render(request, 'rezerwacja.html', {'form': form})
+    # return render(request, 'rezerwacja.html', {'form': form})
+    return '{"aa":2}'
 
 
 @login_required

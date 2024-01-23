@@ -74,15 +74,11 @@ class StatusKary(models.Model):
 
 
 class Ksiazka(models.Model):
+    autor = models.CharField(max_length=100)
+    tytul = models.CharField(max_length=100)
     forma = models.ForeignKey(FormaKsiazki, on_delete=models.CASCADE)
     dostepnosc = models.BooleanField()
     gatunek = models.ForeignKey(Gatunek, on_delete=models.CASCADE)
-
-
-class Pozycja(models.Model):
-    autor = models.CharField(max_length=100)
-    tytul = models.CharField(max_length=100)
-    ksiazka = models.ForeignKey(Ksiazka, on_delete=models.CASCADE)
 
 
 class Wypozyczenie(models.Model):
@@ -91,14 +87,13 @@ class Wypozyczenie(models.Model):
     deadline = models.DateTimeField()
     status = models.ForeignKey(StatusWypozyczenia, on_delete=models.CASCADE)
     czytelnik = models.ForeignKey(Czytelnik, on_delete=models.CASCADE)
-    pozycja = models.ForeignKey(Pozycja, on_delete=models.CASCADE)
+    ksiazka = models.ForeignKey(Ksiazka, on_delete=models.CASCADE)
 
 
 class Rezerwacja(models.Model):
     czytelnik = models.ForeignKey(Czytelnik, on_delete=models.CASCADE)
     ksiazka = models.ForeignKey(Ksiazka, on_delete=models.CASCADE)
     dataRezerwacji = models.DateTimeField()
-
 
 class Kara(models.Model):
     wartosc = models.DecimalField(max_digits=10, decimal_places=2)
