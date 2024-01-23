@@ -1,15 +1,19 @@
-<script>
+<script >
 	import { onMount } from "svelte";
 
-    let booksUrl = ""
+    let booksUrl = "";
+    let editBooksUrl = "";
+    let loanRecordUrl = "";
     let books = [];
 
-    onMount(()=>{
-        books = fetchBooks();
+    let userId;
+
+    onMount(async ()=>{
+        books = await fetchBooks();
+        userId = JSON.parse(localStorage.getItem("userId")); 
     });
 
     async function fetchBooks(){
-
         // try{
         //     const response = await fetch(booksUrl);
         //     const data = await response.json();
@@ -27,9 +31,39 @@
         // }catch(err){
         //     console.log(err);
         // }
-            
-        return [{book_id: 1, title: "Unbearable lightness of Being", author: "Kundera Milan", form: "digital", availability: "available"}];
+        return [{book_id: 1, title: "Unbearable lightness of Being", author: "Kundera Milan", form: "digital", availability: "available"}, {book_id: 1, title: "Fairy Tale", author: "Stephen King", form: "paper", availability: "available"}];
+    }
 
+    async function rentOnline(book_id){
+        try{
+            const queryString = `/${book_id}?`
+            const response = await fetch(editBooksUrl + queryString, {
+                method: 'POST'
+            })
+            if(response.ok){
+                console.log("Rezerwacja przebiegła pomyślnie");
+            }else{
+                console.log("Nie udalo sie zarezerwowac");
+            }
+        }catch(e){
+            console.log(e);
+        }
+    }
+
+    async function makeReservation(book_id){
+        try{
+            const queryString = `/${book_id}?`
+            const response = await fetch(editBooksUrl + queryString, {
+                method: 'POST'
+            })
+            if(response.ok){
+                console.log("Rezerwacja przebiegła pomyślnie");
+            }else{
+                console.log("Nie udalo sie zarezerwowac");
+            }
+        }catch(e){
+            console.log(e);
+        }
     }
 
 </script>
@@ -54,12 +88,18 @@
                 <td>{book.availability}</td>
                 <td>
                     <div>
-                        {#if book.form === "digital"}
-                            <button>
+                        {#if book.form === "digital" && book.availability === "available"}
+                            <button 
+                                class=" bg-slate-300 p-1 rounded-md"
+                                on:click={() => rentOnline(book.book_id)}    
+                            >
                                 Wypożycz Online
                             </button>
-                        {:else}
-                            <button>
+                        {:else if book.form === "paper" && book.availability == "available"}
+                            <button 
+                                class=" bg-slate-300 p-1 rounded-md"
+                                on:click={() => makeReservation(book.book_id)}
+                            >
                                 Rezerwuj
                             </button>
                         {/if}
@@ -75,7 +115,7 @@
 
 <style>
 
-th{
+th, tr, td{
     border: solid 0.5px black;
     padding: 10px;
 }
