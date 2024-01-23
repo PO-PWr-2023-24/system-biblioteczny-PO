@@ -1,3 +1,4 @@
+from django.http import JsonResponse
 from django.shortcuts import render
 from django.contrib.auth import login
 from .backends import UzytkownikBackend
@@ -52,7 +53,8 @@ def logowanie(request):
     else:
         form = LogowanieForm()
 
-    return render(request, 'logowanie.html', {'form': form})
+    # return render(request, 'logowanie.html', {'form': form})
+    return JsonResponse({"ala": "Ma kota"})
 
 @login_required
 def rezerwuj_ksiazke(request):
