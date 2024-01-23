@@ -5,7 +5,6 @@
 
     onMount(()=>{
         userLogged = JSON.parse(localStorage.getItem("userLogged"));
-        console.log(userLogged);
     })
 
     function logout(){
@@ -32,9 +31,9 @@
                     Książki
                 </a>
                 <a 
-                    class:border-b-4={$page.url.href?.includes('/rentals')} 
+                    class:border-b-4={$page.url.href?.includes('/loan-record')} 
                     class=" border-white text-4xl hover:text-white" 
-                    href="/rentals"
+                    href="/loan-record"
                 >
                     Wypożyczenia
                 </a>
