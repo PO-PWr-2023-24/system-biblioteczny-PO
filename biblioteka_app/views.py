@@ -10,7 +10,7 @@ from django.contrib.auth.hashers import make_password
 from .forms import LogowanieForm
 from django.utils import timezone
 from datetime import timedelta
-from .models import Rezerwacja, Ksiazka
+from .models import Rezerwacja, Ksiazka, StatusWypozyczenia
 from .forms import RezerwacjaForm
 from django.contrib.auth.decorators import login_required
 from django.shortcuts import render, get_object_or_404, redirect
@@ -154,11 +154,12 @@ def rent_online(request, book_id):
     user = request.user
     book = get_object_or_404(Ksiazka, pk=book_id)
     czytelnik = get_object_or_404(Czytelnik, uzytkownik=user)
-
+    status, created = StatusWypozyczenia.objects.get_or_create(nazwa="wypożyczona")
     if book.dostepnosc and book.forma.nazwa == 'digital':
         wypozyczenie = Wypozyczenie.objects.create(
             czytelnik=czytelnik,
-            ksiazka=book
+            ksiazka=book,
+            status=status
         )
         #book.dostepnosc = False
         book.save()
