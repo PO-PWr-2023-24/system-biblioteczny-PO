@@ -56,6 +56,7 @@ def logowanie(request):
     # return render(request, 'logowanie.html', {'form': form})
     return JsonResponse({"ala": "Ma kota"})
 
+
 @login_required
 def rezerwuj_ksiazke(request):
     form = RezerwacjaForm()
@@ -88,7 +89,7 @@ def wypozycz_ksiazke_online(request):
         form = WypozyczenieOnlineForm(request.POST)
         if form.is_valid():
             ksiazka = form.cleaned_data['ksiazka_id']
-           # czytelnik = Czytelnik.objects.get(uzytkownik=request.user.czytelnik)
+            # czytelnik = Czytelnik.objects.get(uzytkownik=request.user.czytelnik)
 
             # Sprawdzenie, czy czytelnik ma nieopłacone kary
             try:
@@ -110,3 +111,38 @@ def wypozycz_ksiazke_online(request):
             return redirect('moje_konto')
 
     return render(request, 'wypozycz_online.html', {'form': form})
+
+
+def lista_ksiazek(request):
+    if request.method == 'GET':
+        ksiazki = Ksiazka.objects.all()
+        data = [
+            {
+                'book_id': ksiazka.id,
+                'title': ksiazka.tytul,
+                'author': ksiazka.autor,
+                'form': ksiazka.forma.nazwa,
+                'availability': True if ksiazka.dostepnosc else False
+            }
+            for ksiazka in ksiazki
+        ]
+        return JsonResponse(data, safe=False)
+
+
+def wypozyczenia_czytelnika(request, user_id):
+    if request.method == 'GET':
+        czytelnik = Czytelnik.objects.get(uzytkownik__id=user_id)
+        wypozyczenia = Wypozyczenie.objects.filter(czytelnik=czytelnik).select_related('ksiazka', 'status')
+        data = [
+            {
+                'loan_id': w.id,
+                'start_date': w.dataWypozyczenia,
+                'end_date': w.dataZwrotu,
+                'deadline': w.deadline,
+                'status': w.status.nazwa,
+                'reader_id': user_id,
+                'book_id': w.ksiazka.id,
+                'book_info': f"{w.ksiazka.tytul}, {w.ksiazka.autor}"
+            } for w in wypozyczenia
+        ]
+        return JsonResponse(data, safe=False)

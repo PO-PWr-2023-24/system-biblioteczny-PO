@@ -3,6 +3,12 @@ from django.db import models
 from django.contrib.auth.models import AbstractBaseUser, BaseUserManager, PermissionsMixin
 # from django.db import models
 from django.utils.translation import gettext_lazy as _
+from django.utils import timezone
+import datetime
+
+def oblicz_deadline():
+    return timezone.now() + datetime.timedelta(days=14)
+
 #
 class UzytkownikManager(BaseUserManager):
     def create_user(self, email, password=None, **extra_fields):
@@ -82,14 +88,12 @@ class Ksiazka(models.Model):
 
 
 class Wypozyczenie(models.Model):
-    dataWypozyczenia = models.DateTimeField()
-    dataZwrotu = models.DateTimeField()
-    deadline = models.DateTimeField()
+    dataWypozyczenia = models.DateTimeField(default=timezone.now)
+    dataZwrotu = models.DateTimeField(null=True, blank=True)  # Ustawienie na opcjonalne
+    deadline = models.DateTimeField(default=oblicz_deadline)  # Domyślnie 14 dni po dataWypozyczenia
     status = models.ForeignKey(StatusWypozyczenia, on_delete=models.CASCADE)
     czytelnik = models.ForeignKey(Czytelnik, on_delete=models.CASCADE)
     ksiazka = models.ForeignKey(Ksiazka, on_delete=models.CASCADE)
-
-
 class Rezerwacja(models.Model):
     czytelnik = models.ForeignKey(Czytelnik, on_delete=models.CASCADE)
     ksiazka = models.ForeignKey(Ksiazka, on_delete=models.CASCADE)
