@@ -1,6 +1,8 @@
 from django.http import JsonResponse
 from django.shortcuts import render
 from django.contrib.auth import login
+from django.views.decorators.http import require_http_methods
+
 from .backends import UzytkownikBackend
 from django.shortcuts import render, redirect
 from .forms import RejestracjaUzytkownikaForm
@@ -146,3 +148,37 @@ def wypozyczenia_czytelnika(request, user_id):
             } for w in wypozyczenia
         ]
         return JsonResponse(data, safe=False)
+
+@require_http_methods(["POST"])
+def rent_online(request, book_id):
+    user = request.user
+    book = get_object_or_404(Ksiazka, pk=book_id)
+    czytelnik = get_object_or_404(Czytelnik, uzytkownik=user)
+
+    if book.dostepnosc and book.forma.nazwa == 'digital':
+        wypozyczenie = Wypozyczenie.objects.create(
+            czytelnik=czytelnik,
+            ksiazka=book
+        )
+        #book.dostepnosc = False
+        book.save()
+        return JsonResponse({"message": "Książka wypożyczona pomyślnie."}, status=200)
+    else:
+        return JsonResponse({"message": "Książka nie jest dostępna."}, status=400)
+@require_http_methods(["POST"])
+def make_reservation(request, book_id):
+    user = request.user
+    book = get_object_or_404(Ksiazka, pk=book_id)
+    czytelnik = get_object_or_404(Czytelnik, uzytkownik=user)
+
+    if book.dostepnosc and book.forma.nazwa == 'paper':
+        Rezerwacja.objects.create(
+            czytelnik=czytelnik,
+            ksiazka=book,
+            dataRezerwacji=timezone.now()
+        )
+        book.dostepnosc = False
+        book.save()
+        return JsonResponse({"message": "Rezerwacja dokonana pomyślnie."}, status=200)
+    else:
+        return JsonResponse({"message": "Książka nie jest dostępna."}, status=400)
