@@ -1,0 +1,395 @@
+openapi: 3.0.0
+info:
+  title: PO Project - OpenAPI 3.0
+  description: "This is a first draft of API for PO Project.\n \nSome useful links:\n\
+    - [Github project](https://github.com/PO-PWr-2023-24/system-biblioteczny-PO)"
+  version: 0.0.1
+servers:
+- url: http://127.0.0.1/api
+tags:
+- name: login
+  description: Login to user account
+- name: books
+  description: Operations related to books
+- name: reservations
+  description: Operations related to reservations
+- name: borrow
+  description: Operations related to books borrowing
+paths:
+  /login:
+    post:
+      tags:
+      - login
+      summary: Log in to the system.
+      description: This endpoint authenticates users and provides a JWT token for
+        accessing secure endpoints.
+      operationId: login_user
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/admin_login_body'
+        required: true
+      responses:
+        "200":
+          description: Successfully authenticated
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/token_body'
+        "401":
+          description: Authentication failed
+      x-openapi-router-controller: swagger_server.controllers.login_controller
+  /books:
+    get:
+      tags:
+      - books
+      summary: Get a list of all books.
+      description: This endpoint returns a list of all existing books with their ID, title, author, form and availability.
+      operationId: get_books
+      responses:
+        "200":
+          description: A list of books
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/book_body'
+                x-content-type: application/json
+        "401":
+          description: Unauthorized - Invalid or no authentication token provided
+      security:
+      - bearerAuth: []
+      x-openapi-router-controller: swagger_server.controllers.book_controller
+  /book/{id}:
+    get:
+      tags:
+      - books
+      summary: Get a details of the book.
+      description: This endpoint returns a details of the selected book. Details contain ID, title, author, form and availability.
+      operationId: get_book
+      parameters:
+        - name: id
+          in: path
+          description: ID of the book
+          required: true
+          schema:
+            type: integer
+            format: int64
+      responses:
+        "200":
+          description: Book details
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/book_body'
+        "401":
+          description: Unauthorized - Invalid or no authentication token provided
+        "404":
+          description: Book not found
+      security:
+      - bearerAuth: []
+      x-openapi-router-controller: swagger_server.controllers.book_controller
+    put:
+      tags:
+      - books
+      summary: Update the details of a book
+      description: This endpoint updates the details of the selected book. It allows updating the title, author and form of the book.
+      operationId: update_book
+      parameters:
+        - name: id
+          in: path
+          description: ID of the book to update
+          required: true
+          schema:
+            type: integer
+            format: int64
+      requestBody:
+        description: Object containing the updated details of the book
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/book_update_body'
+      responses:
+        "200":
+          description: Book details updated successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/book_body'
+        "400":
+          description: Invalid input
+        "401":
+          description: Unauthorized - Invalid or no authentication token provided
+        "404":
+          description: Book not found
+      security:
+      - bearerAuth: []
+      x-openapi-router-controller: swagger_server.controllers.book_controller
+  /reservation/{id}:
+    post:
+      tags:
+      - reservations
+      summary: Reserve a book
+      description: This endpoint reserve the selected book.
+      operationId: reserve_book
+      parameters:
+        - name: id
+          in: path
+          description: ID of the book to reserve
+          required: true
+          schema:
+            type: integer
+            format: int64
+      responses:
+        "200":
+          description: Book reserved successfully
+        "400":
+          description: Invalid input
+        "401":
+          description: Unauthorized - Invalid or no authentication token provided
+        "404":
+          description: Book not found
+        "409":
+          description: Can't reserve book
+      security:
+      - bearerAuth: []
+      x-openapi-router-controller: swagger_server.controllers.reservation_controller
+  /borrow/{id}:
+    get:
+      tags:
+      - borrow
+      summary: Get list of all borrows of user
+      description: This endpoint return list of all borrows of user.
+      operationId: list_all_user_borrows
+      parameters:
+        - name: id
+          in: path
+          description: ID of the borrower.
+          required: true
+          schema:
+            type: integer
+            format: int64
+      responses:
+        "200":
+          description: Borrow list
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/borrow_body'
+                x-content-type: application/json
+        "400":
+          description: Invalid input
+        "401":
+          description: Unauthorized - Invalid or no authentication token provided
+        "404":
+          description: User not found
+      security:
+      - bearerAuth: []
+      x-openapi-router-controller: swagger_server.controllers.borrow_controller
+    post:
+      tags:
+      - borrow
+      summary: Create a new borrow
+      description: This endpoint creates a new borrow record for a user.
+      operationId: create_borrow
+      requestBody:
+        description: Object containing the borrow details
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - book_id
+                - date_of_borrow
+                - deadline
+              properties:
+                book_id:
+                  type: integer
+                  format: int64
+                  description: ID of the book to borrow.
+                date_of_borrow:
+                  type: string
+                  format: date-time
+                  description: Date when the book is borrowed, in ISO 8601 format ("2024-12-31T23:59:59Z").
+                deadline:
+                  type: string
+                  format: date-time
+                  description: Date by which the book should be returned, in ISO 8601 format ("2024-12-31T23:59:59Z").
+      parameters:
+        - name: id
+          in: path
+          description: ID of the borrower.
+          required: true
+          schema:
+            type: integer
+            format: int64
+      responses:
+        "201":
+          description: New borrow created
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/borrow_body'
+        "400":
+          description: Invalid input
+        "401":
+          description: Unauthorized - Invalid or no authentication token provided
+        "404":
+          description: User or book not found
+        "409":
+          description: Can't borrow
+      security:
+      - bearerAuth: []
+      x-openapi-router-controller: swagger_server.controllers.borrow_controller
+    put:
+      tags:
+      - borrow
+      summary: Extend an existing borrow
+      description: This endpoint extends the deadline of an existing borrow record.
+      operationId: extend_borrow
+      parameters:
+        - name: id
+          in: path
+          description: ID of the borrow to be extended.
+          required: true
+          schema:
+            type: integer
+            format: int64
+      requestBody:
+        description: Object containing the new deadline for the borrow
+        required: false
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                deadline:
+                  type: string
+                  format: date-time
+                  description: New deadline for returning the book, in ISO 8601 format ("2024-12-31T23:59:59Z").
+      responses:
+        "200":
+          description: Borrow deadline extended
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/borrow_body'
+        "400":
+          description: Invalid input
+        "401":
+          description: Unauthorized - Invalid or no authentication token provided
+        "404":
+          description: Borrow record not found
+        "409":
+          description: Extension not possible (e.g., book already reserved by another user)
+      security:
+      - bearerAuth: []
+      x-openapi-router-controller: swagger_server.controllers.borrow_controller
+
+
+components:
+  schemas:
+    admin_login_body:
+      required:
+      - password
+      - username
+      type: object
+      properties:
+        username:
+          type: string
+          description: Admin username.
+        password:
+          type: string
+          description: Admin password.
+          format: password
+    book_body:
+      type: object
+      properties:
+        id:
+          type: integer
+          description: The unique identifier of the book.
+          format: int64
+        title:
+          type: string
+          description: The name of the book.
+        author:
+          type: string
+          description: The author of the book.
+        is_online:
+          type: boolean
+          description: Is the book in online form.
+        availability:
+          type: boolean
+          description: Is the book avaiable.
+        genre:
+          type: string
+          description: The genre of the book.
+    book_update_body:
+      type: object
+      properties:
+        title:
+          type: string
+          description: The name of the book.
+        author:
+          type: string
+          description: The author of the book.
+        is_online:
+          type: boolean
+          description: Is the book in online form.
+        genre:
+          type: string
+          description: The genre of the book.
+    token_body:
+      type: object
+      properties:
+        token:
+          type: string
+          description: JWT token for authentication
+      example:
+        token: token
+    borrow_body:
+      type: object
+      properties:
+        id:
+          type: integer
+          description: The unique identifier of the borrow.
+          format: int64
+        date_of_borrow:
+          type: string
+          format: date-time
+          description: Date the book was borrowed, in ISO 8601 format. Can be null.
+          example: "2024-12-31T23:59:59Z"
+        date_of_return:
+          type: string
+          format: date-time
+          description: Date the book was returned, in ISO 8601 format. Can be null.
+          example: "2024-12-31T23:59:59Z"
+        deadline:
+          type: string
+          format: date-time
+          description: Date by which the book should be returned, in ISO 8601 format.
+          example: "2024-12-31T23:59:59Z"
+        is_book_returned:
+          type: boolean
+          description: Is book returned.
+        borrower_id:
+          type: integer
+          format: int64
+          description: Id of the borrower.
+        book_id:
+          type: integer
+          format: int64
+          description: Id of the book.
+  securitySchemes:
+    bearerAuth:
+      type: http
+      scheme: bearer
+      bearerFormat: JWT
+      x-bearerInfoFunc: swagger_server.controllers.authorization_controller.check_bearerAuth
+
