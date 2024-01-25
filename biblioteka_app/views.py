@@ -1,27 +1,80 @@
-from django.http import JsonResponse
-from django.shortcuts import render
+from datetime import timedelta
+
+from django.contrib.auth import authenticate
 from django.contrib.auth import login
+from django.contrib.auth.decorators import login_required
+from django.contrib.auth.hashers import make_password
+from django.http import JsonResponse
+from django.shortcuts import get_object_or_404
+from django.shortcuts import render, redirect
+from django.utils import timezone
 from django.views.decorators.http import require_http_methods
+from rest_framework import status
+from rest_framework.response import Response
+from rest_framework.views import APIView
+from rest_framework_simplejwt.tokens import RefreshToken
 
 from .backends import UzytkownikBackend
-from django.shortcuts import render, redirect
-from .forms import RejestracjaUzytkownikaForm
-from django.contrib.auth.hashers import make_password
 from .forms import LogowanieForm
-from django.utils import timezone
-from datetime import timedelta
-from .models import Rezerwacja, Ksiazka, StatusWypozyczenia
+from .forms import RejestracjaUzytkownikaForm
 from .forms import RezerwacjaForm
-from django.contrib.auth.decorators import login_required
-from django.shortcuts import render, get_object_or_404, redirect
-from django.shortcuts import render, redirect
-from .models import Czytelnik, Kara, Wypozyczenie
 from .forms import WypozyczenieOnlineForm
-from django.contrib.auth.decorators import login_required
-from django.utils import timezone
-from datetime import timedelta
+from .models import Czytelnik, Kara, Wypozyczenie
+from .models import Rezerwacja, Ksiazka, StatusWypozyczenia
+from .serializers import BookSerializer, BookUpdateSerializer
 
 NOT_AUTHENTICATED = 0
+
+
+class LoginView(APIView):
+    # Log in to the system.
+    def post(self, request):
+        username = request.data.get('username')
+        password = request.data.get('password')
+        user = authenticate(username=username, password=password)
+        if user:
+            refresh = RefreshToken.for_user(user)
+            return Response({'refresh': str(refresh), 'access': str(refresh.access_token)}, status=status.HTTP_200_OK)
+        return Response({'error': 'Nieprawidłowe dane uwierzytelniające'}, status=status.HTTP_401_UNAUTHORIZED)
+
+
+class BooksView(APIView):
+    # Get a list of all books.
+    def get(self, request):
+        books = Ksiazka.objects.all()
+        serializer = BookSerializer(books, many=True)
+        return Response(serializer.data)
+
+
+class BookView(APIView):
+    def get_object(self, id):
+        try:
+            return Ksiazka.objects.get(pk=id)
+        except Ksiazka.DoesNotExist:
+            return None
+
+    # Get a details of the book.
+    def get(self, request, id):
+        book = self.get_object(id)
+        if book is not None:
+            serializer = BookSerializer(book)
+            return Response(serializer.data)
+        else:
+            return Response(status=status.HTTP_404_NOT_FOUND)
+
+    # Update the details of a book
+    def put(self, request, id):
+        book = self.get_object(id)
+        if book is not None:
+            serializer = BookUpdateSerializer(book, data=request.data)
+            if serializer.is_valid():
+                serializer.save()
+                updated_serializer = BookSerializer(book)
+
+                return Response(updated_serializer.data)
+            return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+        else:
+            return Response(status=status.HTTP_404_NOT_FOUND)
 
 
 def rejestracja(request):
@@ -149,6 +202,7 @@ def wypozyczenia_czytelnika(request, user_id):
         ]
         return JsonResponse(data, safe=False)
 
+
 @require_http_methods(["POST"])
 def rent_online(request, book_id):
     user = request.user
@@ -161,11 +215,13 @@ def rent_online(request, book_id):
             ksiazka=book,
             status=status
         )
-        #book.dostepnosc = False
+        # book.dostepnosc = False
         book.save()
         return JsonResponse({"message": "Książka wypożyczona pomyślnie."}, status=200)
     else:
         return JsonResponse({"message": "Książka nie jest dostępna."}, status=400)
+
+
 @require_http_methods(["POST"])
 def make_reservation(request, book_id):
     user = request.user
