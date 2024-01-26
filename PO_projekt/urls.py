@@ -25,4 +25,5 @@ urlpatterns = [
     path('api/', include('biblioteka_app.urls'), name="api"),
     path('rent_online/<int:book_id>/', views.rent_online, name='rent_online'),
     path('make_reservation/<int:book_id>/', views.make_reservation, name='make_reservation'),
+    path('reservation/<int:id>/', views.ReserveBookView.as_view(), name='reserve_book'),
 ]

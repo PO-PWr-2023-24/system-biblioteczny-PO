@@ -84,7 +84,7 @@ class StatusKary(models.Model):
 class Ksiazka(models.Model):
     autor = models.CharField(max_length=100)
     tytul = models.CharField(max_length=100)
-    forma = models.ForeignKey(FormaKsiazki, on_delete=models.CASCADE)
+    czy_online = models.BooleanField()
     dostepnosc = models.BooleanField()
     gatunek = models.ForeignKey(Gatunek, on_delete=models.CASCADE)
 

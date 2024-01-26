@@ -13,6 +13,7 @@ from rest_framework import status
 from rest_framework.response import Response
 from rest_framework.views import APIView
 from rest_framework_simplejwt.tokens import RefreshToken
+from rest_framework.permissions import IsAuthenticated
 
 from .backends import UzytkownikBackend
 from .forms import LogowanieForm
@@ -34,11 +35,13 @@ class LoginView(APIView):
         user = authenticate(username=username, password=password)
         if user:
             refresh = RefreshToken.for_user(user)
-            return Response({'refresh': str(refresh), 'access': str(refresh.access_token)}, status=status.HTTP_200_OK)
+            return Response({'token': str(refresh.access_token)}, status=status.HTTP_200_OK)
         return Response({'error': 'Nieprawidłowe dane uwierzytelniające'}, status=status.HTTP_401_UNAUTHORIZED)
 
 
 class BooksView(APIView):
+    permission_classes = [IsAuthenticated]
+
     # Get a list of all books.
     def get(self, request):
         books = Ksiazka.objects.all()
@@ -47,35 +50,44 @@ class BooksView(APIView):
 
 
 class BookView(APIView):
-    def get_object(self, id):
-        try:
-            return Ksiazka.objects.get(pk=id)
-        except Ksiazka.DoesNotExist:
-            return None
+    permission_classes = [IsAuthenticated]
 
     # Get a details of the book.
     def get(self, request, id):
-        book = self.get_object(id)
-        if book is not None:
-            serializer = BookSerializer(book)
-            return Response(serializer.data)
-        else:
-            return Response(status=status.HTTP_404_NOT_FOUND)
+        book = get_object_or_404(Ksiazka, pk=id)
+        serializer = BookSerializer(book)
+        return Response(serializer.data)
 
     # Update the details of a book
     def put(self, request, id):
-        book = self.get_object(id)
-        if book is not None:
-            serializer = BookUpdateSerializer(book, data=request.data)
-            if serializer.is_valid():
-                serializer.save()
-                updated_serializer = BookSerializer(book)
+        book = get_object_or_404(Ksiazka, pk=id)
+        serializer = BookUpdateSerializer(book, data=request.data)
+        if serializer.is_valid():
+            serializer.save()
+            updated_serializer = BookSerializer(book)
+            return Response(updated_serializer.data)
+        return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
 
-                return Response(updated_serializer.data)
-            return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+
+class ReserveBookView(APIView):
+    permission_classes = [IsAuthenticated]
+
+    # This endpoint reserve the selected book.
+    def post(self, request, id):
+        user = request.user
+        book = get_object_or_404(Ksiazka, pk=id)
+        czytelnik = get_object_or_404(Czytelnik, uzytkownik=user)
+        if book.dostepnosc and not book.czy_online:
+            Rezerwacja.objects.create(
+                czytelnik=czytelnik,
+                ksiazka=book,
+                dataRezerwacji=timezone.now()
+            )
+            book.dostepnosc = False
+            book.save()
+            return JsonResponse({"message": "Book reserved successfully"}, status=200)
         else:
-            return Response(status=status.HTTP_404_NOT_FOUND)
-
+            return JsonResponse({"message": "Can't reserve book"}, status=409)
 
 def rejestracja(request):
     if request.method == 'POST':
