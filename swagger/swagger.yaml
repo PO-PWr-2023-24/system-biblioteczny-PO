@@ -13,7 +13,7 @@ tags:
   description: Operations related to books
 - name: reservations
   description: Operations related to reservations
-- name: borrow
+- name: borrows
   description: Operations related to books borrowing
 paths:
   /login:
@@ -157,21 +157,13 @@ paths:
       security:
       - bearerAuth: []
       x-openapi-router-controller: swagger_server.controllers.reservation_controller
-  /borrow/{id}:
+  /borrow:
     get:
       tags:
-      - borrow
+      - borrows
       summary: Get list of all borrows of user
       description: This endpoint return list of all borrows of user.
       operationId: list_all_user_borrows
-      parameters:
-        - name: id
-          in: path
-          description: ID of the borrower.
-          required: true
-          schema:
-            type: integer
-            format: int64
       responses:
         "200":
           description: Borrow list
@@ -193,7 +185,7 @@ paths:
       x-openapi-router-controller: swagger_server.controllers.borrow_controller
     post:
       tags:
-      - borrow
+      - borrows
       summary: Create a new borrow
       description: This endpoint creates a new borrow record for a user.
       operationId: create_borrow
@@ -221,14 +213,6 @@ paths:
                   type: string
                   format: date-time
                   description: Date by which the book should be returned, in ISO 8601 format ("2024-12-31T23:59:59Z").
-      parameters:
-        - name: id
-          in: path
-          description: ID of the borrower.
-          required: true
-          schema:
-            type: integer
-            format: int64
       responses:
         "201":
           description: New borrow created
@@ -247,9 +231,10 @@ paths:
       security:
       - bearerAuth: []
       x-openapi-router-controller: swagger_server.controllers.borrow_controller
+  /borrow/{id}:
     put:
       tags:
-      - borrow
+      - borrows
       summary: Extend an existing borrow
       description: This endpoint extends the deadline of an existing borrow record.
       operationId: extend_borrow
@@ -378,10 +363,6 @@ components:
         is_book_returned:
           type: boolean
           description: Is book returned.
-        borrower_id:
-          type: integer
-          format: int64
-          description: Id of the borrower.
         book_id:
           type: integer
           format: int64

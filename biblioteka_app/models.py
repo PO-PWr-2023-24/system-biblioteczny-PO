@@ -1,13 +1,13 @@
-from django.db import models
-#
 from django.contrib.auth.models import AbstractBaseUser, BaseUserManager, PermissionsMixin
-# from django.db import models
+from django.db import models
 from django.utils.translation import gettext_lazy as _
 from django.utils import timezone
 import datetime
 
+
 def oblicz_deadline():
     return timezone.now() + datetime.timedelta(days=14)
+
 
 #
 class UzytkownikManager(BaseUserManager):
@@ -26,6 +26,7 @@ class UzytkownikManager(BaseUserManager):
 
         return self.create_user(email, password, **extra_fields)
 
+
 class Uzytkownik(AbstractBaseUser, PermissionsMixin):
     email = models.EmailField(_('email address'), unique=True)
     imie = models.CharField(_('first name'), max_length=100)
@@ -42,6 +43,7 @@ class Uzytkownik(AbstractBaseUser, PermissionsMixin):
 
     def __str__(self):
         return self.email
+
 
 class Adres(models.Model):
     ulica = models.CharField(max_length=100)
@@ -82,7 +84,7 @@ class StatusKary(models.Model):
 class Ksiazka(models.Model):
     autor = models.CharField(max_length=100)
     tytul = models.CharField(max_length=100)
-    forma = models.ForeignKey(FormaKsiazki, on_delete=models.CASCADE)
+    czy_online = models.BooleanField()
     dostepnosc = models.BooleanField()
     gatunek = models.ForeignKey(Gatunek, on_delete=models.CASCADE)
 
@@ -94,10 +96,13 @@ class Wypozyczenie(models.Model):
     status = models.ForeignKey(StatusWypozyczenia, on_delete=models.CASCADE)
     czytelnik = models.ForeignKey(Czytelnik, on_delete=models.CASCADE)
     ksiazka = models.ForeignKey(Ksiazka, on_delete=models.CASCADE)
+
+
 class Rezerwacja(models.Model):
     czytelnik = models.ForeignKey(Czytelnik, on_delete=models.CASCADE)
     ksiazka = models.ForeignKey(Ksiazka, on_delete=models.CASCADE)
     dataRezerwacji = models.DateTimeField()
+
 
 class Kara(models.Model):
     wartosc = models.DecimalField(max_digits=10, decimal_places=2)
