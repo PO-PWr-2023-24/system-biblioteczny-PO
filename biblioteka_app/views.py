@@ -1,5 +1,5 @@
 from datetime import timedelta
-
+from rest_framework import status
 from django.contrib.auth import authenticate
 from django.contrib.auth import login
 from django.contrib.auth.decorators import login_required
@@ -9,7 +9,7 @@ from django.shortcuts import get_object_or_404
 from django.shortcuts import render, redirect
 from django.utils import timezone
 from django.views.decorators.http import require_http_methods
-from rest_framework import status
+
 from rest_framework.response import Response
 from rest_framework.views import APIView
 from rest_framework_simplejwt.tokens import RefreshToken
@@ -92,7 +92,8 @@ class ReserveBookView(APIView):
 class BorrowListView(APIView):
     permission_classes = [IsAuthenticated]
     def get(self, request, id):
-        czytelnik = get_object_or_404(Czytelnik, uzytkownik__id=id)
+        czytelnik = request.user.czytelnik
+        #czytelnik = get_object_or_404(Czytelnik, uzytkownik__id=id)
         wypozyczenia = Wypozyczenie.objects.filter(czytelnik=czytelnik).select_related('ksiazka', 'status')
         data = [
             {
@@ -101,7 +102,7 @@ class BorrowListView(APIView):
                 'date_of_return': w.dataZwrotu,
                 'deadline': w.deadline,
                 'is_book_returned': w.dataZwrotu is not None,
-                'borrower_id': id,
+                'borrower_id': w.czytelnik.uzytkownik_id,
                 'book_id': w.ksiazka.id
             } for w in wypozyczenia
         ]
@@ -111,13 +112,13 @@ class CreateBorrowView(APIView):
     permission_classes = [IsAuthenticated]
 
     def post(self, request, id):
-        user = get_object_or_404(Czytelnik, uzytkownik__id=id).uzytkownik
+        user = request.user.czytelnik
         book_id = request.data.get('book_id')
         date_of_borrow = request.data.get('date_of_borrow', timezone.now())
         deadline = request.data.get('deadline')
 
         book = get_object_or_404(Ksiazka, pk=book_id)
-        status, _ = StatusWypozyczenia.objects.get_or_create(nazwa="wypożyczona")
+        status_wypozyczenia, _ = StatusWypozyczenia.objects.get_or_create(nazwa="wypożyczona")
 
         if book.dostepnosc:
             wypozyczenie = Wypozyczenie.objects.create(
@@ -125,7 +126,7 @@ class CreateBorrowView(APIView):
                 ksiazka=book,
                 dataWypozyczenia=date_of_borrow,
                 deadline=deadline,
-                status=status
+                status=status_wypozyczenia
             )
             book.dostepnosc = False
             book.save()
@@ -133,7 +134,7 @@ class CreateBorrowView(APIView):
                 'id': wypozyczenie.id,
                 'date_of_borrow': wypozyczenie.dataWypozyczenia,
                 'deadline': wypozyczenie.deadline,
-                'borrower_id': id,
+                'borrower_id': user.id,
                 'book_id': book_id
             }, status=status.HTTP_201_CREATED)
         else:
@@ -141,8 +142,8 @@ class CreateBorrowView(APIView):
 class ExtendBorrowView(APIView):
     permission_classes = [IsAuthenticated]
 
-    def put(self, request, id):
-        wypozyczenie = get_object_or_404(Wypozyczenie, pk=id)
+    def put(self, request, borrow_id):
+        wypozyczenie = get_object_or_404(Wypozyczenie, pk=borrow_id)
         new_deadline = request.data.get('deadline')
 
         if new_deadline:
