@@ -89,6 +89,79 @@ class ReserveBookView(APIView):
         else:
             return JsonResponse({"message": "Can't reserve book"}, status=409)
 
+class BorrowListView(APIView):
+    permission_classes = [IsAuthenticated]
+    def get(self, request, id):
+        czytelnik = get_object_or_404(Czytelnik, uzytkownik__id=id)
+        wypozyczenia = Wypozyczenie.objects.filter(czytelnik=czytelnik).select_related('ksiazka', 'status')
+        data = [
+            {
+                'id': w.id,
+                'date_of_borrow': w.dataWypozyczenia,
+                'date_of_return': w.dataZwrotu,
+                'deadline': w.deadline,
+                'is_book_returned': w.dataZwrotu is not None,
+                'borrower_id': id,
+                'book_id': w.ksiazka.id
+            } for w in wypozyczenia
+        ]
+        return Response(data)
+
+class CreateBorrowView(APIView):
+    permission_classes = [IsAuthenticated]
+
+    def post(self, request, id):
+        user = get_object_or_404(Czytelnik, uzytkownik__id=id).uzytkownik
+        book_id = request.data.get('book_id')
+        date_of_borrow = request.data.get('date_of_borrow', timezone.now())
+        deadline = request.data.get('deadline')
+
+        book = get_object_or_404(Ksiazka, pk=book_id)
+        status, _ = StatusWypozyczenia.objects.get_or_create(nazwa="wypożyczona")
+
+        if book.dostepnosc:
+            wypozyczenie = Wypozyczenie.objects.create(
+                czytelnik=user.czytelnik,
+                ksiazka=book,
+                dataWypozyczenia=date_of_borrow,
+                deadline=deadline,
+                status=status
+            )
+            book.dostepnosc = False
+            book.save()
+            return Response({
+                'id': wypozyczenie.id,
+                'date_of_borrow': wypozyczenie.dataWypozyczenia,
+                'deadline': wypozyczenie.deadline,
+                'borrower_id': id,
+                'book_id': book_id
+            }, status=status.HTTP_201_CREATED)
+        else:
+            return Response({'message': "Can't borrow, book not available"}, status=status.HTTP_409_CONFLICT)
+class ExtendBorrowView(APIView):
+    permission_classes = [IsAuthenticated]
+
+    def put(self, request, id):
+        wypozyczenie = get_object_or_404(Wypozyczenie, pk=id)
+        new_deadline = request.data.get('deadline')
+
+        if new_deadline:
+            wypozyczenie.deadline = new_deadline
+            wypozyczenie.save()
+            return Response({
+                'id': wypozyczenie.id,
+                'new_deadline': new_deadline,
+                'borrower_id': wypozyczenie.czytelnik.uzytkownik_id,
+                'book_id': wypozyczenie.ksiazka.id
+            }, status=status.HTTP_200_OK)
+        else:
+            return Response({'message': 'New deadline not provided'}, status=status.HTTP_400_BAD_REQUEST)
+
+
+
+
+
+
 def rejestracja(request):
     if request.method == 'POST':
         form = RejestracjaUzytkownikaForm(request.POST)

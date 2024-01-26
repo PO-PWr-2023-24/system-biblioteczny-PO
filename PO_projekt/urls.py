@@ -26,4 +26,7 @@ urlpatterns = [
     path('rent_online/<int:book_id>/', views.rent_online, name='rent_online'),
     path('make_reservation/<int:book_id>/', views.make_reservation, name='make_reservation'),
     path('reservation/<int:id>/', views.ReserveBookView.as_view(), name='reserve_book'),
+    path('borrow/<int:user_id>', views.BorrowListView.as_view(), name='borrow_list'),
+    path('borrow/<int:book_id>/new', views.CreateBorrowView.as_view(), name='create_borrow'),
+    path('borrow/<int:borrow_id>/extend', views.ExtendBorrowView.as_view(), name='extend_borrow'),
 ]
