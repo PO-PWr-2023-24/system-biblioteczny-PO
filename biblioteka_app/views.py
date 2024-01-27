@@ -146,18 +146,26 @@ class ExtendBorrowView(APIView):
         wypozyczenie = get_object_or_404(Wypozyczenie, pk=borrow_id)
         new_deadline = request.data.get('deadline')
 
+        # Check if the borrow has already been extended
+        if wypozyczenie.status.nazwa == "przedłużone":
+            return Response({'message': 'Borrow has already been extended'}, status=status.HTTP_400_BAD_REQUEST)
+
         if new_deadline:
+            # Update the deadline and the status
             wypozyczenie.deadline = new_deadline
+            status_przedluzone = StatusWypozyczenia.objects.get_or_create(nazwa="przedłużone")[0]
+            wypozyczenie.status = status_przedluzone
             wypozyczenie.save()
+
             return Response({
                 'id': wypozyczenie.id,
                 'new_deadline': new_deadline,
                 'borrower_id': wypozyczenie.czytelnik.uzytkownik_id,
-                'book_id': wypozyczenie.ksiazka.id
+                'book_id': wypozyczenie.ksiazka.id,
+                'new_status': wypozyczenie.status.nazwa
             }, status=status.HTTP_200_OK)
         else:
             return Response({'message': 'New deadline not provided'}, status=status.HTTP_400_BAD_REQUEST)
-
 
 
 
