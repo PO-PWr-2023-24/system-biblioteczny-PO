@@ -1,8 +1,14 @@
-from django.db import models
-#
 from django.contrib.auth.models import AbstractBaseUser, BaseUserManager, PermissionsMixin
-# from django.db import models
+from django.db import models
 from django.utils.translation import gettext_lazy as _
+from django.utils import timezone
+import datetime
+
+
+def oblicz_deadline():
+    return timezone.now() + datetime.timedelta(days=14)
+
+
 #
 class UzytkownikManager(BaseUserManager):
     def create_user(self, email, password=None, **extra_fields):
@@ -20,6 +26,7 @@ class UzytkownikManager(BaseUserManager):
 
         return self.create_user(email, password, **extra_fields)
 
+
 class Uzytkownik(AbstractBaseUser, PermissionsMixin):
     email = models.EmailField(_('email address'), unique=True)
     imie = models.CharField(_('first name'), max_length=100)
@@ -36,6 +43,7 @@ class Uzytkownik(AbstractBaseUser, PermissionsMixin):
 
     def __str__(self):
         return self.email
+
 
 class Adres(models.Model):
     ulica = models.CharField(max_length=100)
@@ -74,24 +82,20 @@ class StatusKary(models.Model):
 
 
 class Ksiazka(models.Model):
-    forma = models.ForeignKey(FormaKsiazki, on_delete=models.CASCADE)
+    autor = models.CharField(max_length=100)
+    tytul = models.CharField(max_length=100)
+    czy_online = models.BooleanField()
     dostepnosc = models.BooleanField()
     gatunek = models.ForeignKey(Gatunek, on_delete=models.CASCADE)
 
 
-class Pozycja(models.Model):
-    autor = models.CharField(max_length=100)
-    tytul = models.CharField(max_length=100)
-    ksiazka = models.ForeignKey(Ksiazka, on_delete=models.CASCADE)
-
-
 class Wypozyczenie(models.Model):
-    dataWypozyczenia = models.DateTimeField()
-    dataZwrotu = models.DateTimeField()
-    deadline = models.DateTimeField()
+    dataWypozyczenia = models.DateTimeField(default=timezone.now)
+    dataZwrotu = models.DateTimeField(null=True, blank=True)  # Ustawienie na opcjonalne
+    deadline = models.DateTimeField(default=oblicz_deadline)  # Domyślnie 14 dni po dataWypozyczenia
     status = models.ForeignKey(StatusWypozyczenia, on_delete=models.CASCADE)
     czytelnik = models.ForeignKey(Czytelnik, on_delete=models.CASCADE)
-    pozycja = models.ForeignKey(Pozycja, on_delete=models.CASCADE)
+    ksiazka = models.ForeignKey(Ksiazka, on_delete=models.CASCADE)
 
 
 class Rezerwacja(models.Model):
