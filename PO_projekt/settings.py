@@ -26,7 +26,7 @@ SECRET_KEY = "django-insecure-zp(e%mf2rl%%d)t(+h11vabb3n8p#p*7==+2_$f-x!_vw1)q)w
 # SECURITY WARNING: don't run with debug turned on in production!
 DEBUG = True
 
-ALLOWED_HOSTS = []
+ALLOWED_HOSTS = ['localhost', '127.0.0.1']
 
 
 # Application definition
@@ -41,6 +41,7 @@ INSTALLED_APPS = [
     "biblioteka_app",
     "rest_framework",
     "rest_framework_simplejwt",
+    "corsheaders"
 ]
 
 MIDDLEWARE = [
@@ -51,6 +52,11 @@ MIDDLEWARE = [
     "django.contrib.auth.middleware.AuthenticationMiddleware",
     "django.contrib.messages.middleware.MessageMiddleware",
     "django.middleware.clickjacking.XFrameOptionsMiddleware",
+    "corsheaders.middleware.CorsMiddleware",
+]
+
+CORS_ALLOWED_ORIGINS = [
+    "http://localhost:5173",  # Add the origin of your frontend
 ]
 
 REST_FRAMEWORK = {
