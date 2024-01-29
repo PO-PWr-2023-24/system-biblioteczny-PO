@@ -89,11 +89,34 @@ class ReserveBookView(APIView):
         else:
             return JsonResponse({"message": "Can't reserve book"}, status=409)
 
+
+class UserReservationsView(APIView):
+    permission_classes = [IsAuthenticated]
+
+    # This endpoint returns a list of the user's book reservations.
+    def get(self, request):
+        user = request.user
+        czytelnik = get_object_or_404(Czytelnik, uzytkownik=user)
+        rezerwacje = Rezerwacja.objects.filter(czytelnik=czytelnik)
+
+        if rezerwacje.exists():
+            reservations_list = [{
+                "reservationDate": rezerwacja.dataRezerwacji.isoformat(),
+                "bookId": rezerwacja.ksiazka.id,
+                "bookTitle": rezerwacja.ksiazka.tytul
+            } for rezerwacja in rezerwacje]
+
+            return JsonResponse(reservations_list, safe=False, status=200)
+        else:
+            return JsonResponse({"message": "No reservations found"}, status=404)
+
+
 class BorrowListView(APIView):
     permission_classes = [IsAuthenticated]
+
     def get(self, request, id):
         czytelnik = request.user.czytelnik
-        #czytelnik = get_object_or_404(Czytelnik, uzytkownik__id=id)
+        # czytelnik = get_object_or_404(Czytelnik, uzytkownik__id=id)
         wypozyczenia = Wypozyczenie.objects.filter(czytelnik=czytelnik).select_related('ksiazka', 'status')
         data = [
             {
@@ -107,6 +130,7 @@ class BorrowListView(APIView):
             } for w in wypozyczenia
         ]
         return Response(data)
+
 
 class CreateBorrowView(APIView):
     permission_classes = [IsAuthenticated]
@@ -139,6 +163,8 @@ class CreateBorrowView(APIView):
             }, status=status.HTTP_201_CREATED)
         else:
             return Response({'message': "Can't borrow, book not available"}, status=status.HTTP_409_CONFLICT)
+
+
 class ExtendBorrowView(APIView):
     permission_classes = [IsAuthenticated]
 
@@ -166,9 +192,6 @@ class ExtendBorrowView(APIView):
             }, status=status.HTTP_200_OK)
         else:
             return Response({'message': 'New deadline not provided'}, status=status.HTTP_400_BAD_REQUEST)
-
-
-
 
 
 def rejestracja(request):

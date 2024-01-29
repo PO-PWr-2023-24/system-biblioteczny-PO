@@ -128,6 +128,42 @@ paths:
       security:
       - bearerAuth: []
       x-openapi-router-controller: swagger_server.controllers.book_controller
+  /reservations:
+    get:
+      tags:
+      - reservations
+      summary: Get user's reservations
+      description: This endpoint returns a list of the user's book reservations.
+      operationId: get_user_reservations
+      responses:
+        "200":
+          description: List of reservations retrieved successfully
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  type: object
+                  properties:
+                    reservationDate:
+                      type: string
+                      format: date-time
+                      description: Date and time when the reservation was made, in ISO 8601 format
+                    bookId:
+                      type: integer
+                      format: int64
+                      description: ID of the reserved book
+                    bookTitle:
+                      type: string
+                      description: Title of the reserved book
+        "401":
+          description: Unauthorized - Invalid or no authentication token provided
+        "404":
+          description: No reservations found
+      security:
+      - bearerAuth: []
+      x-openapi-router-controller: swagger_server.controllers.reservation_controller
+
   /reservation/{id}:
     post:
       tags:
