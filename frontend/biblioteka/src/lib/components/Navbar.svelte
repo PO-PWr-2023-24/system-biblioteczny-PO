@@ -10,6 +10,7 @@
     function logout(){
         userLogged = false;
         localStorage.setItem("userLogged", "false");
+        localStorage.setItem("token", "");
     }
 
 </script>
