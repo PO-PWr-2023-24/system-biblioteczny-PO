@@ -1,28 +1,34 @@
 <script>
-    import { goto } from '$app/navigation'
 let email = '';
 let password = '';
 let error = '';
 
-let loginUrl = "http://localhost:5173/login";
+let loginUrl = "http://127.0.0.1:8000/api/login";
 
 async function login(){
-    // try{
-    //     const queryString = `?email=${email}&password=${password}`
-    //     const response = await fetch(loginUrl + queryString, {
-    //         method: 'POST'
-    //     })
-    //     if(response.ok){
-    //         localStorage.setItem("userLogged", "true");
-    //     }else{
-    //         error = "Niepoprawny email lub hasło."
-    //     }
-    // }catch(e){
-    //     error = "Błąd logowania";
-    //     console.log(e);
-    // }
-    localStorage.setItem("userLogged", "true");
-    window.location.href = "/"
+    try{
+        const response = await fetch(loginUrl, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+            },
+            body: JSON.stringify({
+                username: email,
+                password: password
+            })
+        })
+        if(response.ok){
+            localStorage.setItem("userLogged", "true");
+            const responseData = await response.json();
+            localStorage.setItem("token", responseData.token);
+            window.location.href = "/";
+        }else{
+            error = "Niepoprawny email lub hasło."
+        }
+    }catch(e){
+        error = "Błąd logowania";
+        console.log(e);
+    }    
 }
 
 </script>
@@ -30,7 +36,7 @@ async function login(){
 
 
 <div class="  fixed flex flex-col justify-center items-center top-0 left-0 h-full w-full z-[99] bg-white">
-    <form on:submit={login} class=" bg-slate-300 w-[500px] h-[700px] shadow-xl rounded-md flex flex-col justify-center items-center p-4 gap-5">
+    <form on:submit|preventDefault={login} class=" bg-slate-300 w-[500px] h-[700px] shadow-xl rounded-md flex flex-col justify-center items-center p-4 gap-5">
         
         <div class=" flex flex-row justify-center items-center">
             <i class="fa-solid fa-book text-4xl"></i>
