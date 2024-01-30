@@ -1,9 +1,14 @@
 <script >
 	import { onMount } from "svelte";
+    import Modal from "../../lib/components/Modal.svelte"
+	import Trigger from "../../lib/components/Trigger.svelte"
+	import Content from "../../lib/components/Content.svelte"
 
-    let booksUrl = "http://127.0.0.1:8000/api/books";
-    let borrowUrl = "http://127.0.0.1:8000/borrow/1/new";
+    const booksUrl = "http://127.0.0.1:8000/api/books";
+    const borrowUrl = "http://127.0.0.1:8000/borrow/1/new";
+    const reserveBookUrl = "http://127.0.0.1:8000/api/reservation" 
     let books = [];
+    let message = "";
 
     let userId;
 
@@ -72,6 +77,9 @@
             }else{
                 console.log("Nie udalo sie zarezerwowac");
             }
+            const book = books.find( book => book.book_id == book_id );
+            console.log(book);
+            if(book !== -1) message = "Pomyślnie wypożyczono książkę " + book.title;
             books = await fetchBooks();
         }catch(e){
             console.log(e);
@@ -80,15 +88,24 @@
 
     async function makeReservation(book_id){
         try{
-            const queryString = `/${book_id}?`
-            const response = await fetch(editBooksUrl + queryString, {
-                method: 'POST'
+            const token = localStorage.getItem("token");
+            if(token === "") return;
+            const response = await fetch(reserveBookUrl + `/${book_id}/`, {
+                method: 'POST',
+                headers: {
+                        'Content-Type': 'application/json',
+                        'Authorization': `Bearer ${token}`
+                    }
             })
             if(response.ok){
                 console.log("Rezerwacja przebiegła pomyślnie");
             }else{
                 console.log("Nie udalo sie zarezerwowac");
             }
+            const book = books.find( book => book.book_id == book_id );
+            console.log(book);
+            if(book !== -1) message = "Pomyślnie zarezerwowano książkę " + book.title;
+            books = await fetchBooks();
         }catch(e){
             console.log(e);
         }
@@ -136,19 +153,47 @@
                 <td>
                     <div>
                         {#if book.form && book.availability}
-                            <button 
-                                class=" bg-slate-300 p-1 rounded-md"
-                                on:click={() => rentOnline(book.book_id)}    
-                            >
-                                Wypożycz Online
-                            </button>
+                            <Modal modalId={`book:${book.id}form:${book.form}`}>
+                                <Content>
+                                    <div class=" flex flex-col gap-2 justify-center items-center">
+                                        <h1 class=" bg-slate-300 p-2">
+                                            Informacja
+                                        </h1>
+                                        <p>
+                                            {`Zamierzasz wypożyczyć ${book.title} autora ${book.author}. Materiały online dostępne są w zakładce Moje Konto.`}
+                                        </p>
+                                        <button class=" border-green-500 border-2 p-2 rounded-md" on:click={() => rentOnline(book.book_id)}>
+                                            Potwierdź
+                                        </button>
+                                    </div>
+                                </Content>
+                                <Trigger>
+                                    <button class=" bg-slate-300 p-1 rounded-md">
+                                        Wypożycz Online
+                                    </button>
+                                </Trigger>
+                            </Modal>
                         {:else if !book.form && book.availability}
-                            <button 
-                                class=" bg-slate-300 p-1 rounded-md"
-                                on:click={() => makeReservation(book.book_id)}
-                            >
-                                Rezerwuj
-                            </button>
+                            <Modal modalId={book.book_id}>
+                                <Content>
+                                    <div class=" flex flex-col gap-2 justify-center items-center">
+                                        <h1 class=" bg-slate-300 p-2">
+                                            Informacja
+                                        </h1>
+                                        <p>
+                                            {`Zamierzasz zarezerwować ${book.title} autora ${book.author}. Jesteś pewien?`}
+                                        </p>
+                                        <button class=" border-green-500 border-2 p-2 rounded-md" on:click={() => makeReservation(book.book_id)}>
+                                            Potwierdź
+                                        </button>
+                                    </div>
+                                </Content>
+                                <Trigger>
+                                    <button class=" bg-slate-300 p-1 rounded-md">
+                                        Rezerwuj
+                                    </button>
+                                </Trigger>
+                            </Modal>
                         {/if}
                     </div>
                 </td>
@@ -156,6 +201,9 @@
         {/each}
 
     </table>
+    {#if message.length !== 0}
+        <h1 class=" text-green-400">{message}</h1>
+    {/if}
 
 </div>
 

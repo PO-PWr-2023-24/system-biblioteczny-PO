@@ -34,9 +34,8 @@ async function login(){
 </script>
 
 
-
 <div class="  fixed flex flex-col justify-center items-center top-0 left-0 h-full w-full z-[99] bg-white">
-    <form on:submit|preventDefault={login} class=" bg-slate-300 w-[500px] h-[700px] shadow-xl rounded-md flex flex-col justify-center items-center p-4 gap-5">
+    <form on:submit|preventDefault={login} class=" bg-slate-300 bg-opacity-75 w-[500px] h-[700px] shadow-xl rounded-md flex flex-col justify-center items-center p-4 gap-5">
         
         <div class=" flex flex-row justify-center items-center">
             <i class="fa-solid fa-book text-4xl"></i>

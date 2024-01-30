@@ -1,24 +1,28 @@
 <script >
 	import { onMount } from "svelte";
 
-    let loansUrl = "http://127.0.0.1:8000/borrow/1";
-    let booksUrl = "http://127.0.0.1:8000/api/books";
-    let extendLoansUrl = "";
+    const loansUrl = "http://127.0.0.1:8000/borrow/1";
+    const booksUrl = "http://127.0.0.1:8000/api/books";
+    const extendLoansUrl = "http://127.0.0.1:8000/borrow";
+    const reservationsUrl = "http://127.0.0.1:8000/api/reservations"
     let books = [];
     let loanRecord = [];
+    let reservations = [];
     let userId;
+    let extendMessage = "";
+    let extendError = "";
 
 
     onMount(async()=>{
         userId = JSON.parse(localStorage.getItem("userId"));
         books = await fetchBooks();
         loanRecord = await fetchLoanRecord();
+        reservations = await fetchReservations();
     });
 
     async function fetchLoanRecord(){
         try{
             const token = localStorage.getItem("token");
-            console.log(token);
             if(token === "") return; 
             const response = await fetch(
                     loansUrl,
@@ -46,7 +50,6 @@
                         book_info: book? `${book.title}, ${book.author}` : "error"
                     }
                 })
-                console.log(result);
                 return result;
             }else{
                 return [];
@@ -64,8 +67,7 @@
                 booksUrl,
                 {
                     method: 'GET',
-                    headers: {
-                        'Content-Type': 'application/json',
+                    headers: {               
                         'Authorization': `Bearer ${token}`
                     }
                 }
@@ -90,20 +92,75 @@
         }
     }
 
-    async function extendLoan(loan_id){
-        if(!userId) return;
+    async function fetchReservations(){
         try{
-            const queryString = `/${loan_id}?`
-            const response = await fetch(extendLoansUrl + queryString, {
-                method: 'POST'
-            })
+            const token = localStorage.getItem("token");
+            if(token === "") return;
+            const response = await fetch(
+                reservationsUrl + "/",
+                {
+                    method: 'GET',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'Authorization': `Bearer ${token}`
+                    },
+                    mode: 'cors'
+                }
+                );
+            const data = await response.json();
             if(response.ok){
-                console.log("Przedłużenie przebiegło pomyślnie");
+                const result = Object.keys(data).map(key =>{
+                    const entry = data[key];
+                    return {
+                        reservationDate: entry.reservationDate,
+                        bookId: entry.bookId,
+                        bookTitle: entry.bookTitle,
+                    }
+                })
+                return result;
             }else{
-                console.log("Nie udalo sie przedłużyć książki");
+                return [];
             }
-        }catch(e){
-            console.log(e);
+        }catch(err){
+            console.log(err);
+            return [];
+        }
+    }
+
+    async function extendLoan(loan_id){
+        try{
+            const token = localStorage.getItem("token");
+            if(token === "") return;
+            const borrow = loanRecord.find(loan => loan.loan_id == loan_id);
+            const currentDate = new Date(borrow.deadline);
+            const newDeadlineDate = new Date(currentDate);
+            newDeadlineDate.setDate(currentDate.getDate() + 7);
+            let formattedDeadline = newDeadlineDate.toISOString();
+            console.log(formattedDeadline);
+            const response = await fetch(
+                extendLoansUrl + `/${loan_id}/extend`,
+                {
+                    method: 'PUT',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'Authorization': `Bearer ${token}`
+                    },
+                    body:JSON.stringify({
+                        deadline: formattedDeadline
+                    })
+                }
+                );
+            if(response.ok){
+                console.log("OK")
+                extendMessage = "Pomyślnie przedłużono do dnia " + formatDateString(formattedDeadline);
+                extendError = "";
+            }else{
+                console.log("NIEOK")
+                extendError = "Nie można przedłużyć tego wypożyczenia.";
+                extendMessage = "";
+            }
+        }catch(err){
+            console.log(err);
         }
     }
 
@@ -112,41 +169,71 @@
         const formattedDate = dateObject.toLocaleDateString();
         return formattedDate;
     }
-
+    
 </script>
 
+<div class=" flex flex-col gap-2 p-10 justify-center">
+    <h1 class=" text-2xl"><strong>Wypożyczenia</strong></h1>
+    <div class=" flex flex-col items-center">
+    
+        <table>
+            <th>Numer wypożyczenia</th>
+            <th>Data wypożyczenia</th>
+            <th>Data oddania</th>
+            <th>Deadline</th>
+            <th>Status</th>
+            <th>Książka</th>
+    
+            {#each loanRecord as record}
+                <tr>
+    
+                    <td>{record.loan_id}</td>
+                    <td>{formatDateString(record.start_date)}</td>
+                    <td>{record.end_date ? record.end_date : ""}</td>
+                    <td>
+                        <div class=" flex flex-row gap-1 justify-center items-center">
+                            <h1>{formatDateString(record.deadline)}</h1>
+                            {#if !record.isReturned}
+                                <button on:click={() => extendLoan(record.loan_id, record.reader_id)}><i class="fa-regular fa-calendar-plus text-lg"></i></button>
+                            {/if}
+                        </div>
+                    </td>
+                    <td>{record.isReturned ? "Zakończone" : "Aktywne"}</td>
+                    <td>{record.book_info}</td>
+    
+                </tr>
+            {/each}
+    
+        </table>
+        {#if extendMessage.length !== 0}
+        <h1 class=" text-green-500">{extendMessage}</h1>
+        {/if}
 
-<div class=" flex flex-col items-center p-10">
-    <table>
-        <th>Numer wypożyczenia</th>
-        <th>Data wypożyczenia</th>
-        <th>Data oddania</th>
-        <th>Deadline</th>
-        <th>Status</th>
-        <th>Książka</th>
-
-        {#each loanRecord as record}
-            <tr>
-
-                <td>{record.loan_id}</td>
-                <td>{formatDateString(record.start_date)}</td>
-                <td>{record.end_date ? record.end_date : ""}</td>
-                <td>
-                    <div class=" flex flex-row gap-1 justify-center items-center">
-                        <h1>{formatDateString(record.deadline)}</h1>
-                        {#if !record.isReturned}
-                            <button on:click={() => extendLoan(record.loan_id, record.reader_id)}><i class="fa-regular fa-calendar-plus text-lg"></i></button>
-                        {/if}
-                    </div>
-                </td>
-                <td>{record.isReturned ? "Zakończone" : "Aktywne"}</td>
-                <td>{record.book_info}</td>
-
-            </tr>
-        {/each}
-
-    </table>
+        {#if extendError.length !== 0}
+            <h1 class=" text-red-600">{extendError}</h1>
+        {/if}
+        
+    </div>
+    <h1 class=" text-2xl pt-10"><strong>Rezerwacje</strong></h1>
+    <div class=" flex flex-col items-center">
+    
+        <table>
+            <th>Numer rezerwacji</th>
+            <th>Data rezerwacji</th>
+            <th>Książka</th>
+    
+            {#each reservations as reservation, i}
+                <tr>
+                    <td>{i}</td>
+                    <td>{formatDateString(reservation.reservationDate)}</td>
+                    <td>{reservation.bookTitle}</td>
+                </tr>
+            {/each}
+    
+        </table>
+    </div>
 </div>
+
 
 
 <style>
