@@ -9,6 +9,8 @@ from django.shortcuts import get_object_or_404
 from django.shortcuts import render, redirect
 from django.utils import timezone
 from django.views.decorators.http import require_http_methods
+from rest_framework.decorators import api_view, permission_classes, authentication_classes
+
 
 from rest_framework.response import Response
 from rest_framework.views import APIView
@@ -89,7 +91,6 @@ class ReserveBookView(APIView):
         else:
             return JsonResponse({"message": "Can't reserve book"}, status=409)
 
-
 class UserReservationsView(APIView):
     permission_classes = [IsAuthenticated]
 
@@ -108,7 +109,7 @@ class UserReservationsView(APIView):
 
             return JsonResponse(reservations_list, safe=False, status=200)
         else:
-            return JsonResponse({"message": "No reservations found"}, status=404)
+            return JsonResponse({"message": "No reservations found"}, status=409)
 
 
 class BorrowListView(APIView):
@@ -146,7 +147,7 @@ class CreateBorrowView(APIView):
 
         if book.dostepnosc:
             wypozyczenie = Wypozyczenie.objects.create(
-                czytelnik=user.czytelnik,
+                czytelnik=user,
                 ksiazka=book,
                 dataWypozyczenia=date_of_borrow,
                 deadline=deadline,
