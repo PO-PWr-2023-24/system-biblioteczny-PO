@@ -26,7 +26,7 @@ SECRET_KEY = "django-insecure-zp(e%mf2rl%%d)t(+h11vabb3n8p#p*7==+2_$f-x!_vw1)q)w
 # SECURITY WARNING: don't run with debug turned on in production!
 DEBUG = True
 
-ALLOWED_HOSTS = ['localhost', '127.0.0.1']
+ALLOWED_HOSTS = ['localhost:5173', '127.0.0.1', '127.0.0.1:8000', '127.0.0.1:8000/api']
 
 
 # Application definition
@@ -53,6 +53,7 @@ MIDDLEWARE = [
     "django.contrib.messages.middleware.MessageMiddleware",
     "django.middleware.clickjacking.XFrameOptionsMiddleware",
     "corsheaders.middleware.CorsMiddleware",
+    'django.middleware.common.CommonMiddleware',
 ]
 
 CORS_ALLOWED_ORIGINS = [
